@@ -1,24 +1,24 @@
 # CIC-IDS2017-analysis
 This project applies machine learning techniques to network intrusion detection using the CIC-IDS2017 dataset. It covers data preprocessing, feature engineering, model training and evaluation — classifying network traffic as benign or malicious across multiple attack categories including DDoS, PortScan, and Brute Force.
 
-## קבצים
+## Files
 
 ### `load_data.py`
-טוען את כל קבצי ה-CSV של הדאטאסט מתיקיית `data/raw/`, מנרמל שמות עמודות, ומוחק שורות עם ערכים חסרים או אינסופיים. מחזיר DataFrame אחד מאוחד עם כל הנתונים.
+Loads all CIC-IDS2017 CSV files from `data/raw/`, normalizes column names, and drops rows with missing or infinite values. Returns a single unified DataFrame.
 
 ### `eda.py` — Exploratory Data Analysis
-מנתח את הדאטאסט ומפיק תובנות ראשוניות:
-- **התפלגות תוויות** — כמה רשומות יש מכל סוג תעבורה (BENIGN, DDoS, PortScan וכו')
-- **סטטיסטיקות בסיסיות** — ממוצע, סטיית תקן, מינימום ומקסימום לכל feature
-- **מפת קורלציה** — אילו features קשורים זה לזה
-- **התפלגות features** — 6 ה-features שמבדילים הכי טוב בין תעבורה תקינה למתקפות
+Analyzes the dataset and produces initial insights:
+- **Label distribution** — count of records per traffic type (BENIGN, DDoS, PortScan, etc.)
+- **Basic statistics** — mean, std, min, and max per feature
+- **Correlation heatmap** — which features are related to each other
+- **Feature distributions** — top 6 features that best distinguish benign traffic from attacks
 
-הגרפים נשמרים בתיקיית `output/eda/`.
+Plots are saved to `output/eda/`.
 
 ### `download_data.py`
-מוריד את הדאטאסט מהאינטרנט ושומר אותו ב-`data/raw/`.
+Downloads the dataset and saves it to `data/raw/`.
 
-## הרצה
+## Running
 ```bash
 python main.py
 ```
