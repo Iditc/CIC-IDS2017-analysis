@@ -15,14 +15,18 @@ Analyzes the dataset and produces initial insights:
 
 Plots are saved to `output/eda/`.
 
-#### Label Distribution
-![Label Distribution](output/eda/label_distribution.png)
+### `correlation_filter.py` — Redundant Feature Removal
+Identifies and removes highly correlated features (threshold: |r| > 0.9).
 
-#### Correlation Heatmap
-![Correlation Heatmap](output/eda/correlation_heatmap.png)
+Algorithm:
+- Computes the full correlation matrix for all numeric features
+- Iterates over feature pairs — if two features are highly correlated, drops the second one
+- Once a feature is marked for dropping, it is skipped in all further comparisons
 
-#### Top 6 Discriminative Features
-![Top Features Distribution](output/eda/top_features_distribution.png)
+Output:
+- Prints dropped features and their correlation partners to the terminal
+- Saves `output/features_to_keep.csv` — the final list of features to use
+- Saves `output/dropped_features_heatmap.png` — heatmap showing dropped features vs their correlated partners
 
 ### `download_data.py`
 Downloads the dataset and saves it to `data/raw/`.
@@ -114,3 +118,26 @@ python main.py
 | Idle Max | Longest idle period (µs) |
 | Idle Min | Shortest idle period (µs) |
 | Label | Traffic classification: BENIGN or attack type (DDoS, PortScan, Brute Force, etc.) |
+
+## Missing Values
+
+Two features contain missing values (0.1% of rows each):
+
+- **Flow Bytes/s** — total bytes per second in the flow. Missing in 2,867 rows (0.1%). Correlation with label: TBD (pending analysis).
+- **Flow Packets/s** — total packets per second in the flow. Missing in 2,867 rows (0.1%). Correlation with label: TBD (pending analysis).
+
+Both features affect the same rows (missing values are co-located). Given the very low missing rate (0.1%), these rows will be dropped during preprocessing. Correlation analysis will determine whether these features carry meaningful signal.
+
+## EDA Plots
+
+#### Label Distribution
+![Label Distribution](output/eda/label_distribution.png)
+
+#### Correlation Heatmap
+![Correlation Heatmap](output/eda/correlation_heatmap.png)
+
+#### Top 6 Discriminative Features
+![Top Features Distribution](output/eda/top_features_distribution.png)
+
+#### Dropped Features Heatmap
+![Dropped Features Heatmap](output/dropped_features_heatmap.png)
