@@ -1,6 +1,7 @@
 """
 Step 1 — Data Loading
 Loads all CIC-IDS2017 CSV files, cleans them, and returns a unified DataFrame.
+Only columns listed in features_to_keep.csv are kept (output of basic_feature_selection.py).
 """
 
 import os
@@ -9,6 +10,7 @@ import pandas as pd
 import numpy as np
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "raw")
+FEATURES_TO_KEEP_PATH = os.path.join(os.path.dirname(__file__), "output", "features_to_keep.csv")
 
 # Map each source file to the attack day it represents
 DAY_LABELS = {
@@ -61,6 +63,18 @@ def load_dataset(data_dir: str = DATA_DIR) -> pd.DataFrame:
 
     # Normalize label column
     combined["Label"] = combined["Label"].str.strip()
+
+    # Keep only selected features (output of basic_feature_selection.py).
+    # Label and source_file are always kept regardless of the feature list.
+    if os.path.exists(FEATURES_TO_KEEP_PATH):
+        features_to_keep = pd.read_csv(FEATURES_TO_KEEP_PATH)["feature"].tolist()
+        cols_to_keep = features_to_keep + ["Label", "source_file"]
+        # Keep only columns that actually exist in the DataFrame
+        cols_to_keep = [c for c in cols_to_keep if c in combined.columns]
+        combined = combined[cols_to_keep]
+        print(f"Applied feature selection: {len(features_to_keep)} features kept")
+    else:
+        print("Warning: features_to_keep.csv not found — run basic_feature_selection.py first")
 
     print(f"\nDataset loaded: {len(combined):,} rows × {len(combined.columns)} columns")
     return combined
