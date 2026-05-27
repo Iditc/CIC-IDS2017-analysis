@@ -50,6 +50,18 @@ relevant to cybersecurity products like Palo Alto Networks.
 - Do not reload raw CSVs if processed/ already exists
 - Save processed data as parquet for speed
 
+## Git Workflow Rules
+
+- After every logical step that produces working code, explicitly tell the user to commit.
+- Always provide the exact commands to run, including the specific files to add:
+  ```
+  git add <specific file(s)>
+  git commit -m "short description"
+  git push
+  ```
+- Never use `git add .` or `git add -A` — always specify exact file names.
+- Remind to push after every commit.
+
 ## AI Workflow Strategy (Claude Code)
 - Opus: use for high-level decisions — algorithm selection, architecture, 
   debugging complex issues, reviewing results
