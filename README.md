@@ -3,33 +3,28 @@ This project applies machine learning techniques to network intrusion detection 
 
 ## Files
 
-### `load_data.py`
-Loads all CIC-IDS2017 CSV files from `data/raw/`, normalizes column names, and drops rows with missing or infinite values. Returns a single unified DataFrame.
+### `preprocessing/`
+| File | Description |
+|------|-------------|
+| `download_data.py` | Downloads the dataset and saves it to `data/raw/` |
+| `load_data.py` | Loads all CSVs, normalizes column names, drops NaN/Inf rows, applies feature selection |
+| `basic_feature_selection.py` | Three-pass feature selection: zero-variance → inter-feature correlation → label correlation |
+| `data_cleaning.py` | Removes duplicate rows and NaN/Inf rows; saves cleaned dataset to `data/processed/clean.parquet` |
 
-### `eda.py` — Exploratory Data Analysis
-Analyzes the dataset and produces initial insights:
-- **Label distribution** — count of records per traffic type (BENIGN, DDoS, PortScan, etc.)
-- **Basic statistics** — mean, std, min, and max per feature
-- **Correlation heatmap** — which features are related to each other
-- **Feature distributions** — top 6 features that best distinguish benign traffic from attacks
+### `eda/`
+| File | Description |
+|------|-------------|
+| `dataset_overview.py` | Shape, missing values, class distribution, label descriptions |
+| `eda.py` | Label distribution plot, correlation heatmap, top discriminative features |
+| `feature_descriptions.py` | Full table of all 79 features with category and description |
+| `describe_features.py` | Mean, std, min, max, skewness, and outlier % per feature |
 
-Plots are saved to `output/eda/`.
-
-### `correlation_filter.py` — Redundant Feature Removal
-Identifies and removes highly correlated features (threshold: |r| > 0.9).
-
-Algorithm:
-- Computes the full correlation matrix for all numeric features
-- Iterates over feature pairs — if two features are highly correlated, drops the second one
-- Once a feature is marked for dropping, it is skipped in all further comparisons
-
-Output:
-- Prints dropped features and their correlation partners to the terminal
-- Saves `output/features_to_keep.csv` — the final list of features to use
-- Saves `output/dropped_features_heatmap.png` — heatmap showing dropped features vs their correlated partners
-
-### `download_data.py`
-Downloads the dataset and saves it to `data/raw/`.
+### `models/`
+| File | Description |
+|------|-------------|
+| `baseline_random_forest.py` | Random Forest with no class balancing — serves as the reference point |
+| `balanced_random_forest.py` | Random Forest with `class_weight='balanced'` |
+| `utils.py` | Shared utilities: label remapping, confusion matrix plotting, comparison CSV |
 
 ## Running
 ```bash
@@ -127,6 +122,52 @@ Two features contain missing values (0.1% of rows each):
 - **Flow Packets/s** — total packets per second in the flow. Missing in 2,867 rows (0.1%). Correlation with label: TBD (pending analysis).
 
 Both features affect the same rows (missing values are co-located). Given the very low missing rate (0.1%), these rows will be dropped during preprocessing. Correlation analysis will determine whether these features carry meaningful signal.
+
+## Data Cleaning
+
+The raw dataset contains 2,830,743 rows. Two cleaning steps were applied before training:
+
+### Step 1 — Duplicate Removal
+Exact duplicate rows (all feature values identical) were identified and removed, keeping only the first occurrence of each group.
+
+- Rows removed: **309,956** (10.95% of the dataset)
+- Most duplicates came from BENIGN traffic and common attack types (DoS Hulk, PortScan)
+- After deduplication: **2,520,787 rows**
+
+### Step 2 — NaN and Infinity Removal
+Two features — `Flow Bytes/s` and `Flow Packets/s` — contain infinite values produced by CICFlowMeter when flow duration is zero (division by zero). Any row containing at least one NaN or Inf value was dropped.
+
+- Rows removed: **~2,867** (0.1% of the dataset)
+- Only these two features were affected; all other features are complete
+
+### Result
+The cleaned dataset contains **2,520,787 rows** and is saved to `data/processed/clean.parquet`.
+
+---
+
+## Baseline Model
+
+A Random Forest classifier (100 trees) was trained on the cleaned dataset as a reference point before applying any class balancing or feature engineering.
+
+### Setup
+- **Train / Test split:** 80% / 20%, stratified by class
+- **Web Attack merging:** The three Web Attack subclasses (Brute Force, XSS, SQL Injection) were merged into a single `Web Attack` label. Each subclass had too few samples (4–294 in the test set) for reliable individual evaluation, and the model consistently confused them with each other. Merging reduced the number of classes from 15 to 13.
+
+### Results
+
+| Model | F1 Macro | Recall Bot | Recall Web Attack | Recall Infiltration |
+|-------|----------|-----------|-------------------|---------------------|
+| Baseline (no balancing) | 0.9511 | 0.771 | 0.972 | 0.857 |
+| Balanced (`class_weight='balanced'`) | 0.9572 | 0.774 | 0.974 | 1.000 |
+
+### Key Findings
+- Both models perform well overall (F1 Macro > 0.95)
+- **Bot** is the hardest class to detect — ~25% of bot traffic is missed by both models. Bot traffic deliberately mimics normal HTTP communication, making it difficult to distinguish using network flow features alone
+- `class_weight='balanced'` provides minimal improvement over the baseline. With very rare classes (Heartbleed: 11 total samples, Infiltration: 36), even heavy weighting cannot compensate for insufficient training data
+- **Heartbleed and Infiltration** results are statistically unreliable due to very small test set sizes (2 and 7 samples respectively)
+- Results are saved to `output/models/` with a per-model confusion matrix and a central comparison table
+
+---
 
 ## EDA Plots
 
