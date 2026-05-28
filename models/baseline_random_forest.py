@@ -1,7 +1,7 @@
 """
 Baseline Model — Random Forest (no class balancing).
 
-Trains a Random Forest classifier on the cleaned dataset without any
+Trains a Random Forest classifier on the engineered dataset without any
 class balancing techniques. Serves as the reference point for all
 subsequent models that apply balancing or other improvements.
 
@@ -9,11 +9,14 @@ Metrics reported:
   - F1 Macro
   - Per-class Recall, Precision, F1 (sorted by Recall ascending)
   - Confusion Matrix (normalized) saved as PNG
+  - Feature importance (top 20) saved as PNG and CSV
 
 Output:
   - Prints results to terminal.
-  - Saves output/models/baseline/confusion_matrix.png
-  - Saves output/models/baseline/results.csv
+  - Saves output/models/baseline_engineered/confusion_matrix.png
+  - Saves output/models/baseline_engineered/results.csv
+  - Saves output/models/baseline_engineered/feature_importance.png
+  - Saves output/models/baseline_engineered/feature_importance.csv
   - Updates output/models/comparison.csv
 """
 
@@ -25,13 +28,13 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, f1_score
 from sklearn.model_selection import train_test_split
 
-from models.utils import save_model_results, update_comparison
+from models.utils import remap_labels, save_feature_importance, save_model_results, update_comparison
 
 ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
 PROCESSED_DIR = os.path.join(ROOT_DIR, "data", "processed")
-CLEAN_PARQUET = os.path.join(PROCESSED_DIR, "clean.parquet")
+INPUT_PARQUET = os.path.join(PROCESSED_DIR, "engineered.parquet")
 
-MODEL_NAME = "baseline"
+MODEL_NAME = "baseline_engineered"
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
 N_ESTIMATORS = 100
@@ -40,14 +43,14 @@ N_ESTIMATORS = 100
 # ── Data loading ──────────────────────────────────────────────────────────────
 
 def load_data() -> tuple[pd.DataFrame, pd.Series]:
-    """Load cleaned dataset and return features X and labels y."""
-    print("Loading cleaned dataset...")
-    df = pd.read_parquet(CLEAN_PARQUET)
+    """Load engineered dataset and return features X and labels y."""
+    print("Loading engineered dataset...")
+    df = pd.read_parquet(INPUT_PARQUET)
     print(f"Loaded: {len(df):,} rows x {df.shape[1]} columns")
 
     feature_cols = df.select_dtypes(include=[np.number]).columns.tolist()
     X = df[feature_cols]
-    y = df["Label"]
+    y = remap_labels(df["Label"])
 
     print(f"Features : {X.shape[1]}")
     print(f"Classes  : {y.nunique()}")
@@ -124,6 +127,7 @@ def main() -> None:
 
     print(f"\nSaving results...")
     save_model_results(MODEL_NAME, y_test, y_pred, per_class, class_names)
+    save_feature_importance(MODEL_NAME, X_train.columns.tolist(), model.feature_importances_)
     update_comparison(MODEL_NAME, y_test, y_pred, per_class)
 
 
